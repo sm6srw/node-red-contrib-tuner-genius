@@ -5,6 +5,7 @@
             host: { value: "localhost", required: true },
             port: { value: 9010, required: true, validate: RED.validators.number() },
             autoConnect: { value: true },
+            pollInterval: { value: 1000, validate: RED.validators.number() },
         },
         label: function () {
             return "tuner genius at " + this.host + ":" + this.port;
@@ -25,6 +26,10 @@
         <label for="node-config-input-autoConnect"><i class="fa fa-plug"></i> Auto connect</label>
         <input type="checkbox" id="node-config-input-autoConnect" style="width:auto" />
     </div>
+    <div class="form-row">
+        <label for="node-config-input-pollInterval"><i class="fa fa-clock-o"></i> Poll (ms)</label>
+        <input type="text" id="node-config-input-pollInterval" />
+    </div>
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-server">
@@ -37,4 +42,6 @@ Tuner Genius shared connection configuration (TGXL TCP API).
 : Port (integer) : Tuner Genius API port number.
 
 : Auto connect (boolean) : Connect and reconnect automatically.
+
+: Poll (ms) : How often to read `status` from the device. 0 disables polling.
 </script>

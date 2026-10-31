@@ -1,4 +1,4 @@
-const { GeniusV4Protocol, parseStatus, parseBanner } = require("../GeniusV4Protocol");
+const { GeniusV4Protocol, parseKeyValues, parseStatus, parseBanner } = require("../GeniusV4Protocol");
 
 describe("GeniusV4Protocol", () => {
     test("parseStatus", () => {
@@ -7,9 +7,13 @@ describe("GeniusV4Protocol", () => {
         });
     });
 
+    test("parseKeyValues handles keys starting with a digit", () => {
+        expect(parseKeyValues("info 3WAY=1 nickname=TG")).toEqual({ "3WAY": 1, nickname: "TG" });
+    });
+
     test("parseBanner", () => {
-        expect(parseBanner("V1.1.8 AUTH")).toEqual({ firmware: "1.1.8", authRequired: true });
-        expect(parseBanner("V1.1.8")).toEqual({ firmware: "1.1.8", authRequired: false });
+        expect(parseBanner("V1.2.44 AUTH")).toEqual({ firmware: "1.2.44", authRequired: true });
+        expect(parseBanner("V1.2.44")).toEqual({ firmware: "1.2.44", authRequired: false });
     });
 
     test("banner, command/reply and status", async () => {
@@ -21,11 +25,11 @@ describe("GeniusV4Protocol", () => {
         p.onBanner((b) => banners.push(b));
         const reply = p.sendCommand("status", 500);
         expect(written[0]).toBe("C1|status\r\n");
-        p.handleData("V1.1.8\r\nS7|status fwd=1\r\nR1|0|status swr=1\r");
+        p.handleData("V1.2.44\r\nS7|status fwd=1\r\nR1|0|status swr=1\r");
         p.handleData("\n");
         await expect(reply).resolves.toBe("status swr=1");
         expect(status).toEqual(["status fwd=1"]);
-        expect(banners).toEqual(["V1.1.8"]);
+        expect(banners).toEqual(["V1.2.44"]);
     });
 
     test("error reply rejects", async () => {

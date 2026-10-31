@@ -122,7 +122,7 @@ const toValue = (value) => {
 // Parses "key=value key=value ..." (optionally prefixed by a word such as "status").
 const parseKeyValues = (msg) => {
     const kv = {};
-    const re = /([A-Za-z_]\w*)=(\S*)/g;
+    const re = /(\w+)=(\S*)/g;
     let m;
     while ((m = re.exec(msg)) !== null) {
         kv[m[1]] = toValue(m[2]);
@@ -132,7 +132,7 @@ const parseKeyValues = (msg) => {
 
 const parseStatus = (msg) => parseKeyValues(msg);
 
-// "V1.1.8 AUTH"
+// "V1.2.44 AUTH"
 const parseBanner = (line) => {
     const tokens = line.trim().split(/\s+/);
     return {

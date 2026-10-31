@@ -1,6 +1,6 @@
 const Net = require("net");
 const EventEmitter = require("events");
-const { GeniusV4Protocol, parseStatus, parseBanner } = require("./GeniusV4Protocol");
+const { GeniusV4Protocol, parseKeyValues, parseStatus, parseBanner } = require("./GeniusV4Protocol");
 
 class UpdatesEventEmitter extends EventEmitter {}
 
@@ -11,6 +11,9 @@ module.exports = (RED) => {
             this.host = n.host;
             this.port = n.port;
             this.autoConnect = n.autoConnect || false;
+            this.pollInterval = Math.max(parseInt(n.pollInterval, 10) || 0, 0);
+            this.poller = null;
+            this.threeWay = false;
 
             this.status = {};
             this.info = {};
@@ -29,6 +32,7 @@ module.exports = (RED) => {
                 clearTimeout(this.timer);
                 this.connected = false;
                 this._detach();
+                this._stopPolling();
 
                 if (this.updatesEventEmitter.listenerCount("closed") == 0) {
                     this.log("Stop retrying. No nodes are refering this connection anymore.");
@@ -61,6 +65,7 @@ module.exports = (RED) => {
                 this.autoConnect = false;
                 this.connected = false;
                 this._detach();
+                this._stopPolling();
                 this.client.end();
                 done();
             });
@@ -72,6 +77,26 @@ module.exports = (RED) => {
                 this._dataHandler = null;
             }
             this._v4 = null;
+        }
+
+        _stopPolling() {
+            clearInterval(this.poller);
+            this.poller = null;
+        }
+
+        _startPolling() {
+            this._stopPolling();
+            if (!this.pollInterval) return;
+            let busy = false;
+            this.poller = setInterval(async () => {
+                if (busy || !this._v4) return;
+                busy = true;
+                try {
+                    await this.resendStatus();
+                } finally {
+                    busy = false;
+                }
+            }, this.pollInterval);
         }
 
         async _setup() {
@@ -95,9 +120,19 @@ module.exports = (RED) => {
             });
             this.client.on("data", this._dataHandler);
 
+            // "info" tells the SO2R and 3WAY variants apart (3WAY=1 on the latter).
+            const info = parseKeyValues(await v4.sendCommand("info", 3000));
+            this.threeWay = info["3WAY"] === 1;
+            this.info = {
+                ...this.info,
+                ...info,
+                name: String(info.nickname || info.name || this.info.name || "").replace(/_/g, " "),
+            };
             this.status = { ...this.status, ...parseStatus(await v4.sendCommand("status", 3000)) };
 
             if (this._v4 !== v4 || !this.connected) return;
+
+            this._startPolling();
 
             this.updatesEventEmitter.emit("connected");
             this.updatesEventEmitter.emit("status", { ...this.status });
@@ -119,8 +154,13 @@ module.exports = (RED) => {
             return this.command(`bypass set=${on ? 1 : 0}`);
         }
 
-        activateAntenna(ant) {
-            return this.command(`activate ant=${ant}`);
+        // 3WAY units select an antenna (1-3), SO2R units select a channel (1-2).
+        activate(n) {
+            const max = this.threeWay ? 3 : 2;
+            if (!Number.isInteger(n) || n < 1 || n > max) {
+                return Promise.reject(new Error(`activate expects 1-${max}`));
+            }
+            return this.command(`activate ${this.threeWay ? "ant" : "ch"}=${n}`);
         }
 
         autotune() {

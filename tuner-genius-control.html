@@ -31,7 +31,7 @@
             <option value="">msg.topic</option>
             <option value="operate">operate</option>
             <option value="bypass">bypass</option>
-            <option value="activate">activate antenna</option>
+            <option value="activate">activate</option>
             <option value="autotune">autotune</option>
         </select>
     </div>
@@ -44,5 +44,5 @@ Controls the Tuner Genius.
 
 : topic (string) : `operate`, `bypass`, `activate` or `autotune` (used unless an action is fixed in the node).
 
-: payload (boolean|string) : For `operate` and `bypass`: `true`, `1` or `"on"` enables, anything else disables. For `activate`: antenna number 1-3. Ignored for `autotune`.
+: payload (boolean|string) : For `operate` and `bypass`: `true`, `1` or `"on"` enables, anything else disables. For `activate`: antenna 1-3 on 3WAY units (`activate ant=`), channel 1-2 on SO2R units (`activate ch=`). Ignored for `autotune`.
 </script>
