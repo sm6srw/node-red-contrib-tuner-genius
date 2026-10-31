@@ -27,13 +27,13 @@
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-status">
-Emits the Tuner Genius status whenever it changes.
+Emits the Tuner Genius XL status whenever the device reports it.
 
 ### Input
 
-Any message re-sends the current status.
+Any message reads and emits the current status.
 
 ### Output
 
-: payload (object) : Tuner state as reported by the device, e.g. `operate`, `bypass`, `tuning`, `swr`, `fwd`, `band`, `c`, `l`.
+: payload (object) : Tuner state as reported by the device, the key=value pairs of the `status` command, e.g. `fwd`, `peak`, `swr`, `operate`, `bypass`, `bandA`, `antA`.
 </script>

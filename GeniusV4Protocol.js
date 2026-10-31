@@ -1,7 +1,8 @@
 // Client for the Genius V4 line based API (shared pattern with Antenna Genius).
 //   request:   C<seq>|<command>\r\n
 //   reply:     R<seq>|<hex result>|<message>\r\n
-//   status:    S0|<message>\r\n
+//   status:    S<n>|<message>\r\n   (TGXL pushes S7|status fwd=... swr=...)
+//   banner:    V<version>[ AUTH]\r\n  (sent once on connect)
 class GeniusV4Protocol {
     constructor(socket) {
         this.socket = socket;
@@ -9,6 +10,7 @@ class GeniusV4Protocol {
         this.pending = new Map();
         this.lineBuffer = "";
         this.statusHandler = null;
+        this.bannerHandler = null;
     }
 
     nextSeq() {
@@ -27,6 +29,13 @@ class GeniusV4Protocol {
 
     _handleLine(line) {
         if (!line) return;
+
+        if (line.startsWith("V")) {
+            if (this.bannerHandler) {
+                this.bannerHandler(line);
+            }
+            return;
+        }
 
         if (line.startsWith("S")) {
             const pipeIdx = line.indexOf("|");
@@ -98,48 +107,41 @@ class GeniusV4Protocol {
     onStatus(handler) {
         this.statusHandler = handler;
     }
+
+    onBanner(handler) {
+        this.bannerHandler = handler;
+    }
 }
 
-const parseKeyValues = (tokens, startIndex) => {
+const toValue = (value) => {
+    if (value === "") return value;
+    const n = Number(value);
+    return Number.isNaN(n) ? value : n;
+};
+
+// Parses "key=value key=value ..." (optionally prefixed by a word such as "status").
+const parseKeyValues = (msg) => {
     const kv = {};
-    for (let i = startIndex; i < tokens.length; i++) {
-        const eq = tokens[i].indexOf("=");
-        if (eq !== -1) {
-            kv[tokens[i].substring(0, eq)] = tokens[i].substring(eq + 1);
-        }
+    const re = /([A-Za-z_]\w*)=(\S*)/g;
+    let m;
+    while ((m = re.exec(msg)) !== null) {
+        kv[m[1]] = toValue(m[2]);
     }
     return kv;
 };
 
-const toNumber = (value) => {
-    if (value === undefined || value === "") return undefined;
-    const n = Number(value);
-    return Number.isNaN(n) ? undefined : n;
-};
+const parseStatus = (msg) => parseKeyValues(msg);
 
-const parseInfo = (msg) => {
-    // "info v=1.0.0 serial=XX name=Tuner_Genius_XL"
-    const kv = parseKeyValues(msg.split(" "), 1);
+// "V1.1.8 AUTH"
+const parseBanner = (line) => {
+    const tokens = line.trim().split(/\s+/);
     return {
-        name: (kv.name || "").replace(/_/g, " "),
-        firmware: kv.v || "",
-        serial: kv.serial || "",
+        firmware: tokens[0].replace(/^V/, ""),
+        authRequired: tokens.includes("AUTH"),
     };
-};
-
-const parseTuner = (msg) => {
-    // "tuner 1 operate=1 bypass=0 tuning=0 swr=1.05 fwd=100.0 band=3 c=120 l=45 ant=1"
-    const tokens = msg.trim().split(" ");
-    const kv = parseKeyValues(tokens, 2);
-    const tuner = { tunerNum: parseInt(tokens[1], 10) };
-    for (const key of Object.keys(kv)) {
-        const n = toNumber(kv[key]);
-        tuner[key] = n === undefined ? kv[key] : n;
-    }
-    return tuner;
 };
 
 exports.GeniusV4Protocol = GeniusV4Protocol;
 exports.parseKeyValues = parseKeyValues;
-exports.parseInfo = parseInfo;
-exports.parseTuner = parseTuner;
+exports.parseStatus = parseStatus;
+exports.parseBanner = parseBanner;

@@ -36,11 +36,19 @@ module.exports = (RED) => {
                         case "bypass":
                             await this.server.setBypass(on);
                             break;
-                        case "tune":
-                            await this.server.tune();
+                        case "activate": {
+                            const ant = parseInt(msg.payload, 10);
+                            if (![1, 2, 3].includes(ant)) {
+                                throw new Error("payload must be antenna 1, 2 or 3");
+                            }
+                            await this.server.activateAntenna(ant);
+                            break;
+                        }
+                        case "autotune":
+                            await this.server.autotune();
                             break;
                         default:
-                            throw new Error("topic must be one of: operate, bypass, tune");
+                            throw new Error("topic must be one of: operate, bypass, activate, autotune");
                     }
                     if (done) done();
                 } catch (err) {

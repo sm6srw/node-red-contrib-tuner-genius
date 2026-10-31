@@ -1,6 +1,6 @@
 const Net = require("net");
 const EventEmitter = require("events");
-const { GeniusV4Protocol, parseInfo, parseTuner } = require("./GeniusV4Protocol");
+const { GeniusV4Protocol, parseStatus, parseBanner } = require("./GeniusV4Protocol");
 
 class UpdatesEventEmitter extends EventEmitter {}
 
@@ -46,7 +46,7 @@ module.exports = (RED) => {
                 this.log("TCP connection established with the server.");
                 this.connected = true;
                 try {
-                    await this._connectV4();
+                    await this._setup();
                 } catch (err) {
                     this.warn("Connection setup failed: " + err.message);
                 }
@@ -74,32 +74,28 @@ module.exports = (RED) => {
             this._v4 = null;
         }
 
-        _applyTuner(tuner) {
-            const { tunerNum, ...rest } = tuner;
-            this.status = { ...this.status, ...rest };
-        }
-
-        async _connectV4() {
+        async _setup() {
             const v4 = new GeniusV4Protocol(this.client);
             this._v4 = v4;
             this._dataHandler = (chunk) => v4.handleData(chunk);
-            this.client.on("data", this._dataHandler);
 
-            this.info = parseInfo(await v4.sendCommand("info get", 3000));
-            this._applyTuner(parseTuner(await v4.sendCommand("tuner get 1", 3000)));
-
+            // The device sends "V<version>[ AUTH]" immediately after connecting.
+            v4.onBanner((line) => {
+                this.info = { ...this.info, ...parseBanner(line) };
+                if (this.info.authRequired) {
+                    this.warn("Tuner Genius requires authentication, which is not supported yet.");
+                }
+            });
+            // Unsolicited status: "S7|status fwd=... swr=..." (no subscription needed).
             v4.onStatus((msg) => {
-                if (msg.startsWith("tuner ")) {
-                    this._applyTuner(parseTuner(msg));
+                if (msg.startsWith("status")) {
+                    this.status = { ...this.status, ...parseStatus(msg) };
                     this.updatesEventEmitter.emit("status", { ...this.status });
                 }
             });
+            this.client.on("data", this._dataHandler);
 
-            try {
-                await v4.sendCommand("sub tuner all", 1000);
-            } catch (err) {
-                if (err.code !== "ETIMEDOUT") throw err;
-            }
+            this.status = { ...this.status, ...parseStatus(await v4.sendCommand("status", 3000)) };
 
             if (this._v4 !== v4 || !this.connected) return;
 
@@ -116,15 +112,19 @@ module.exports = (RED) => {
         }
 
         setOperate(on) {
-            return this.command(`tuner set 1 operate=${on ? 1 : 0}`);
+            return this.command(`operate set=${on ? 1 : 0}`);
         }
 
         setBypass(on) {
-            return this.command(`tuner set 1 bypass=${on ? 1 : 0}`);
+            return this.command(`bypass set=${on ? 1 : 0}`);
         }
 
-        tune() {
-            return this.command("tuner tune 1");
+        activateAntenna(ant) {
+            return this.command(`activate ant=${ant}`);
+        }
+
+        autotune() {
+            return this.command("autotune");
         }
 
         connect() {
@@ -133,10 +133,16 @@ module.exports = (RED) => {
             }
         }
 
-        resendStatus() {
-            if (this.connected && this.info.name !== undefined) {
-                this.updatesEventEmitter.emit("status", { ...this.status });
+        // Ask the device for the current status and emit it.
+        async resendStatus() {
+            if (!this._v4) return;
+            try {
+                this.status = { ...this.status, ...parseStatus(await this.command("status")) };
+            } catch (err) {
+                this.warn("Failed to read status: " + err.message);
+                return;
             }
+            this.updatesEventEmitter.emit("status", { ...this.status });
         }
     }
 
