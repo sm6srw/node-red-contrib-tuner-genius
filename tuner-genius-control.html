@@ -1,0 +1,48 @@
+<script type="text/javascript">
+    RED.nodes.registerType("tuner-genius-control", {
+        category: "Tuner Genius",
+        color: "#a6bbcf",
+        defaults: {
+            name: { value: "" },
+            server: { type: "tuner-genius-server", required: true },
+            action: { value: "" },
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: "bridge.svg",
+        label: function () {
+            return this.name || "tuner control";
+        },
+    });
+</script>
+
+<script type="text/html" data-template-name="tuner-genius-control">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-action"><i class="fa fa-cog"></i> Action</label>
+        <select id="node-input-action">
+            <option value="">msg.topic</option>
+            <option value="operate">operate</option>
+            <option value="bypass">bypass</option>
+            <option value="activate">activate</option>
+            <option value="autotune">autotune</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/markdown" data-help-name="tuner-genius-control">
+Controls the Tuner Genius.
+
+### Input
+
+: topic (string) : `operate`, `bypass`, `activate` or `autotune` (used unless an action is fixed in the node).
+
+: payload (boolean|string) : For `operate` and `bypass`: `true`, `1` or `"on"` enables, anything else disables. For `activate`: antenna 1-3 on 3WAY units (`activate ant=`), channel 1-2 on SO2R units (`activate ch=`). Ignored for `autotune`.
+</script>
