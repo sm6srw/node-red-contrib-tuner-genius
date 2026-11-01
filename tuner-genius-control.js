@@ -25,7 +25,7 @@ module.exports = (RED) => {
             });
 
             this.on("input", async (msg, send, done) => {
-                const action = String(msg.topic || config.action || "").toLowerCase();
+                const action = String(config.action || msg.topic || "").toLowerCase();
                 const on = msg.payload === true || msg.payload === 1 || msg.payload === "1" ||
                     String(msg.payload).toLowerCase() === "on";
                 try {

@@ -20,6 +20,34 @@ describe("nodes", () => {
         expect(helper.getNode("c")).toBeDefined();
     });
 
+    describe("control node", () => {
+        const load = async (cfg) => {
+            await helper.load([server, control], [
+                { id: "s", type: "tuner-genius-server", host: "127.0.0.1", port: 1, autoConnect: false },
+                { id: "c", type: "tuner-genius-control", server: "s", ...cfg },
+            ]);
+            const srv = helper.getNode("s");
+            const calls = [];
+            srv.command = (cmd) => { calls.push(cmd); return Promise.resolve(""); };
+            return { calls, node: helper.getNode("c") };
+        };
+        const tick = () => new Promise((r) => setTimeout(r, 20));
+
+        test("a fixed action wins over msg.topic", async () => {
+            const { calls, node } = await load({ action: "operate" });
+            node.receive({ topic: "swr", payload: 1 });
+            await tick();
+            expect(calls).toEqual(["operate set=1"]);
+        });
+
+        test("msg.topic is used when no action is fixed", async () => {
+            const { calls, node } = await load({ action: "" });
+            node.receive({ topic: "bypass", payload: "off" });
+            await tick();
+            expect(calls).toEqual(["bypass set=0"]);
+        });
+    });
+
     describe("status node", () => {
         const tick = () => new Promise((r) => setTimeout(r, 20));
         const load = async (cfg) => {
