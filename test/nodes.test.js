@@ -101,6 +101,21 @@ describe("nodes", () => {
             expect(out[0].topic).toBe("status");
         });
 
+        test("start delay holds back output, then emits the latest value", async () => {
+            const { out, srv } = await load({ property: "fwd", startDelay: 100 });
+            srv.status = { fwd: 1 };
+            srv.updatesEventEmitter.emit("status", { fwd: 1 });
+            srv.status = { fwd: 2 };
+            srv.updatesEventEmitter.emit("status", { fwd: 2 });
+            await tick();
+            expect(out).toHaveLength(0);
+            await new Promise((r) => setTimeout(r, 120));
+            expect(out.map((m) => m.payload)).toEqual([2]);
+            srv.updatesEventEmitter.emit("status", { fwd: 3 });
+            await tick();
+            expect(out.map((m) => m.payload)).toEqual([2, 3]);
+        });
+
         test("unset property behaves like all", async () => {
             const { out, srv } = await load({});
             srv.updatesEventEmitter.emit("status", { fwd: 1 });

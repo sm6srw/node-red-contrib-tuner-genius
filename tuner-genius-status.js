@@ -13,7 +13,10 @@ module.exports = (RED) => {
             const property = config.property && config.property !== "*" ? config.property : null;
             const onlyChange = config.onlyChange !== false && config.onlyChange !== "false";
             const deadband = Math.max(parseFloat(config.deadband) || 0, 0);
+            const startDelay = Math.max(parseInt(config.startDelay, 10) || 0, 0);
             let last;
+            let ready = startDelay === 0;
+            let startTimer = null;
 
             const changed = (value) => {
                 if (last === undefined) return true;
@@ -50,7 +53,21 @@ module.exports = (RED) => {
                 last = undefined;
                 this.status({ fill: "red", shape: "ring", text: "disconnected" });
             };
-            const onStatus = (status) => emit(status, false);
+            const onStatus = (status) => {
+                if (ready) emit(status, false);
+            };
+
+            // Hold back output after deploy so that downstream nodes (e.g. dashboard UI) can finish initializing,
+            // then emit the latest known status.
+            if (!ready) {
+                startTimer = setTimeout(() => {
+                    startTimer = null;
+                    ready = true;
+                    if (Object.keys(this.server.status).length > 0) {
+                        emit({ ...this.server.status }, false);
+                    }
+                }, startDelay);
+            }
 
             emitter.on("connected", onConnected);
             emitter.on("closed", onClosed);
@@ -66,6 +83,7 @@ module.exports = (RED) => {
             });
 
             this.on("close", () => {
+                clearTimeout(startTimer);
                 emitter.removeListener("connected", onConnected);
                 emitter.removeListener("closed", onClosed);
                 emitter.removeListener("status", onStatus);

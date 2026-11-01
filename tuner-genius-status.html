@@ -8,6 +8,7 @@
             property: { value: "*" },
             onlyChange: { value: true },
             deadband: { value: 0, validate: function (v) { return v === "" || v === undefined || (!isNaN(v) && Number(v) >= 0); } },
+            startDelay: { value: 1000, validate: function (v) { return v === "" || v === undefined || (!isNaN(v) && Number(v) >= 0); } },
         },
         inputs: 1,
         outputs: 1,
@@ -89,6 +90,11 @@
         <input type="number" id="node-input-deadband" min="0" step="any" style="width:100px" />
         <span style="margin-left:5px">numeric values: ignore smaller changes (0 = off)</span>
     </div>
+    <div class="form-row">
+        <label for="node-input-startDelay"><i class="fa fa-hourglass-start"></i> Start delay</label>
+        <input type="number" id="node-input-startDelay" min="0" step="100" style="width:100px" />
+        <span style="margin-left:5px">ms before the first output after deploy</span>
+    </div>
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-status">
@@ -113,6 +119,8 @@ The device reports `state` (0 standby, 1 operate), `active` (selected channel), 
 `ptt`, `band`, `mode` (0 RF sense, 1 FLEX, 2 CAT, 3 P2B, 4 BCD), `flex`, `freq`, `bypass`, `bypassRx` and `ant`.
 
 With *Only emit when the value changes* on, the first value after (re)connecting is always emitted.
+The *Start delay* holds back all output for that many milliseconds after the flow is deployed, then emits
+the latest known status. This gives downstream nodes such as dashboard widgets time to initialize.
 The *Deadband* suppresses numeric changes smaller than the given amount, relative to the last emitted value,
 which is useful for noisy values such as `fwd` and `swr`.
 </script>
