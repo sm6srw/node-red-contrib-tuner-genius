@@ -64,6 +64,14 @@ Commands are sent as `C<seq>|<command>` terminated by a bare LF (a trailing CR m
 
 Not yet supported: UDP discovery (broadcast on port 9010), `auth` (authentication is only required when connecting from outside the local network) and the `M|<message>` warning/info lines.
 
+## Example
+
+An example flow is included. After installing, use **Import → Examples → node-red-contrib-tuner-genius** in the editor.
+It shows one status node per property (`fwd`, `swr`, `state`), a status node for the whole object, the info node and
+control nodes with inject buttons for operate, bypass, activate and autotune. Set the host of the
+**tuner genius** server node to your tuner before deploying. The flow is in
+[examples/tuner-genius-example.json](examples/tuner-genius-example.json).
+
 ## Install
 
     npm install node-red-contrib-tuner-genius

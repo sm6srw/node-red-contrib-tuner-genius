@@ -26,7 +26,8 @@
   },
   "files": [
     "*.js",
-    "*.html"
+    "*.html",
+    "examples"
   ],
   "node-red": {
     "version": ">=3.1.0",

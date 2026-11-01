@@ -1,0 +1,447 @@
+[
+    {
+        "id": "tg-tab",
+        "type": "tab",
+        "label": "Tuner Genius",
+        "disabled": false,
+        "info": "Example flow for node-red-contrib-tuner-genius.\n\nSet the host of the **tuner genius** server node to the address of your Tuner Genius XL, deploy, and watch the debug sidebar."
+    },
+    {
+        "id": "tg-server",
+        "type": "tuner-genius-server",
+        "host": "192.168.1.100",
+        "port": 9010,
+        "autoConnect": true,
+        "pollInterval": 1000
+    },
+    {
+        "id": "tg-comment-setup",
+        "type": "comment",
+        "z": "tg-tab",
+        "name": "Setup: edit the tuner genius server node (host), then deploy",
+        "info": "Double click any Tuner Genius node, then the pencil next to Server, and enter the host name or IP address of the tuner. The API port is 9010.",
+        "x": 270,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "tg-comment-monitor",
+        "type": "comment",
+        "z": "tg-tab",
+        "name": "Monitor: one status node per property",
+        "info": "Each status node subscribes to one property and only emits when the value changes. The topic is the property name and msg.previous holds the previous value.\n\nfwd is in dBm and swr is the return loss in dB (-60 when there is no RF). Use the deadband to ignore small changes in noisy values.",
+        "x": 210,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "tg-status-fwd",
+        "type": "tuner-genius-status",
+        "z": "tg-tab",
+        "name": "",
+        "server": "tg-server",
+        "property": "fwd",
+        "onlyChange": true,
+        "deadband": 0.5,
+        "startDelay": 1000,
+        "x": 150,
+        "y": 160,
+        "wires": [["tg-debug-fwd"]]
+    },
+    {
+        "id": "tg-debug-fwd",
+        "type": "debug",
+        "z": "tg-tab",
+        "name": "fwd (dBm)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 420,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "tg-status-swr",
+        "type": "tuner-genius-status",
+        "z": "tg-tab",
+        "name": "",
+        "server": "tg-server",
+        "property": "swr",
+        "onlyChange": true,
+        "deadband": 0.5,
+        "startDelay": 1000,
+        "x": 150,
+        "y": 220,
+        "wires": [["tg-debug-swr"]]
+    },
+    {
+        "id": "tg-debug-swr",
+        "type": "debug",
+        "z": "tg-tab",
+        "name": "return loss (dB)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 430,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "tg-status-state",
+        "type": "tuner-genius-status",
+        "z": "tg-tab",
+        "name": "",
+        "server": "tg-server",
+        "property": "state",
+        "onlyChange": true,
+        "deadband": 0,
+        "startDelay": 1000,
+        "x": 150,
+        "y": 280,
+        "wires": [["tg-change-state"]]
+    },
+    {
+        "id": "tg-change-state",
+        "type": "change",
+        "z": "tg-tab",
+        "name": "0/1 to text",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload = 1 ? \"operate\" : \"standby\"",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 330,
+        "y": 280,
+        "wires": [["tg-debug-state"]]
+    },
+    {
+        "id": "tg-debug-state",
+        "type": "debug",
+        "z": "tg-tab",
+        "name": "state",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 490,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "tg-status-all",
+        "type": "tuner-genius-status",
+        "z": "tg-tab",
+        "name": "all status",
+        "server": "tg-server",
+        "property": "*",
+        "onlyChange": true,
+        "deadband": 0,
+        "startDelay": 1000,
+        "x": 160,
+        "y": 340,
+        "wires": [["tg-debug-all"]]
+    },
+    {
+        "id": "tg-debug-all",
+        "type": "debug",
+        "z": "tg-tab",
+        "name": "whole status object",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 440,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "tg-inject-refresh",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "refresh",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 400,
+        "wires": [["tg-status-all", "tg-status-fwd", "tg-status-swr", "tg-status-state", "tg-info-all"]]
+    },
+    {
+        "id": "tg-comment-info",
+        "type": "comment",
+        "z": "tg-tab",
+        "name": "Device info: emitted once after connecting",
+        "info": "The info node emits the device information (name, nickname, serial, version, firmware and 3way on 3WAY units) as an object, or a single item when a property is selected. Any input message re-reads it.",
+        "x": 230,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "tg-info-all",
+        "type": "tuner-genius-info",
+        "z": "tg-tab",
+        "name": "",
+        "server": "tg-server",
+        "property": "*",
+        "startDelay": 1000,
+        "x": 150,
+        "y": 520,
+        "wires": [["tg-debug-info"]]
+    },
+    {
+        "id": "tg-debug-info",
+        "type": "debug",
+        "z": "tg-tab",
+        "name": "device info",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "tg-comment-control",
+        "type": "comment",
+        "z": "tg-tab",
+        "name": "Control: click the inject buttons to operate the tuner",
+        "info": "The first control node takes its action from msg.topic. For operate and bypass a payload of true, 1 or \"on\" enables and anything else disables. Activate selects antenna 1-3 on 3WAY units, or channel 1-2 on SO2R units.\n\nThe last control node has a fixed action, which always takes precedence over msg.topic.",
+        "x": 250,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "tg-inject-operate",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "operate",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "operate",
+        "payload": "true",
+        "payloadType": "bool",
+        "x": 120,
+        "y": 640,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-inject-standby",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "standby",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "operate",
+        "payload": "false",
+        "payloadType": "bool",
+        "x": 120,
+        "y": 680,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-inject-bypass-on",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "bypass",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "bypass",
+        "payload": "true",
+        "payloadType": "bool",
+        "x": 120,
+        "y": 720,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-inject-bypass-off",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "in line",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "bypass",
+        "payload": "false",
+        "payloadType": "bool",
+        "x": 120,
+        "y": 760,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-inject-activate-1",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "activate 1",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "activate",
+        "payload": "1",
+        "payloadType": "num",
+        "x": 130,
+        "y": 800,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-inject-activate-2",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "activate 2",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "activate",
+        "payload": "2",
+        "payloadType": "num",
+        "x": 130,
+        "y": 840,
+        "wires": [["tg-control-topic"]]
+    },
+    {
+        "id": "tg-control-topic",
+        "type": "tuner-genius-control",
+        "z": "tg-tab",
+        "name": "control (msg.topic)",
+        "server": "tg-server",
+        "action": "",
+        "x": 380,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "tg-inject-autotune",
+        "type": "inject",
+        "z": "tg-tab",
+        "name": "autotune",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 900,
+        "wires": [["tg-control-autotune"]]
+    },
+    {
+        "id": "tg-control-autotune",
+        "type": "tuner-genius-control",
+        "z": "tg-tab",
+        "name": "autotune (fixed action)",
+        "server": "tg-server",
+        "action": "autotune",
+        "x": 390,
+        "y": 900,
+        "wires": []
+    }
+]

@@ -20,6 +20,25 @@ describe("nodes", () => {
         expect(helper.getNode("c")).toBeDefined();
     });
 
+    test("example flow loads and the nodes are wired", async () => {
+        const fs = require("fs");
+        const path = require("path");
+        const info = require("../tuner-genius-info.js");
+        const flow = JSON.parse(fs.readFileSync(path.join(__dirname, "../examples/tuner-genius-example.json"), "utf8"));
+        const ids = new Set(flow.map((n) => n.id));
+        for (const n of flow) {
+            for (const out of n.wires || []) for (const target of out) expect(ids.has(target)).toBe(true);
+        }
+        // Not auto connecting, so the test does not try to reach the example host.
+        const testFlow = flow.map((n) => (n.type === "tuner-genius-server" ? { ...n, autoConnect: false } : n));
+        const core = ["common/20-inject.js", "common/21-debug.js", "common/90-comment.js", "function/15-change.js"]
+            .map((f) => require(`@node-red/nodes/core/${f}`));
+        await helper.load([...core, server, status, info, control], testFlow);
+        for (const n of flow.filter((x) => x.type.startsWith("tuner-genius-") && x.z)) {
+            expect(helper.getNode(n.id)).toBeDefined();
+        }
+    });
+
     describe("control node", () => {
         const load = async (cfg) => {
             await helper.load([server, control], [
