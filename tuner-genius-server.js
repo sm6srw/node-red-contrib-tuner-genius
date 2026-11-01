@@ -113,6 +113,7 @@ module.exports = (RED) => {
             });
             // Unsolicited status: "S7|status fwd=... swr=..." (no subscription needed).
             v4.onStatus((msg) => {
+                this.trace("rx " + msg);
                 if (msg.startsWith("status")) {
                     this.status = { ...this.status, ...parseStatus(msg) };
                     this.updatesEventEmitter.emit("status", { ...this.status });
