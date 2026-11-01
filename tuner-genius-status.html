@@ -5,12 +5,23 @@
         defaults: {
             name: { value: "" },
             server: { type: "tuner-genius-server", required: true },
+            property: { value: "*" },
+            onlyChange: { value: true },
+            deadband: { value: 0, validate: function (v) { return v === "" || v === undefined || (!isNaN(v) && Number(v) >= 0); } },
         },
         inputs: 1,
         outputs: 1,
         icon: "bridge.svg",
         label: function () {
-            return this.name || "tuner status";
+            if (this.name) return this.name;
+            return this.property && this.property !== "*" ? "tuner " + this.property : "tuner status";
+        },
+        oneditprepare: function () {
+            const sync = () => {
+                $("#node-input-deadband-row").toggle($("#node-input-property").val() !== "*");
+            };
+            $("#node-input-property").on("change", sync);
+            sync();
         },
     });
 </script>
@@ -24,16 +35,84 @@
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" />
     </div>
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-filter"></i> Property</label>
+        <select id="node-input-property" style="width:70%">
+            <option value="*">(all, as an object)</option>
+            <optgroup label="Device">
+                <option value="state">state</option>
+                <option value="active">active</option>
+                <option value="tuning">tuning</option>
+                <option value="bypass">bypass</option>
+                <option value="ag">ag</option>
+            </optgroup>
+            <optgroup label="Power">
+                <option value="fwd">fwd</option>
+                <option value="peak">peak</option>
+                <option value="max">max</option>
+                <option value="swr">swr</option>
+            </optgroup>
+            <optgroup label="Relays">
+                <option value="relayC1">relayC1</option>
+                <option value="relayL">relayL</option>
+                <option value="relayC2">relayC2</option>
+            </optgroup>
+            <optgroup label="Channel A">
+                <option value="pttA">pttA</option>
+                <option value="bandA">bandA</option>
+                <option value="modeA">modeA</option>
+                <option value="flexA">flexA</option>
+                <option value="freqA">freqA</option>
+                <option value="bypassA">bypassA</option>
+                <option value="bypassRxA">bypassRxA</option>
+                <option value="antA">antA</option>
+            </optgroup>
+            <optgroup label="Channel B">
+                <option value="pttB">pttB</option>
+                <option value="bandB">bandB</option>
+                <option value="modeB">modeB</option>
+                <option value="flexB">flexB</option>
+                <option value="freqB">freqB</option>
+                <option value="bypassB">bypassB</option>
+                <option value="bypassRxB">bypassRxB</option>
+                <option value="antB">antB</option>
+            </optgroup>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-onlyChange">&nbsp;</label>
+        <input type="checkbox" id="node-input-onlyChange" style="display:inline-block; width:auto; vertical-align:top;" />
+        <label for="node-input-onlyChange" style="width:70%">Only emit when the value changes</label>
+    </div>
+    <div class="form-row" id="node-input-deadband-row">
+        <label for="node-input-deadband"><i class="fa fa-arrows-v"></i> Deadband</label>
+        <input type="number" id="node-input-deadband" min="0" step="any" style="width:100px" />
+        <span style="margin-left:5px">numeric values: ignore smaller changes (0 = off)</span>
+    </div>
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-status">
-Emits the Tuner Genius XL status whenever the device reports it.
+Emits one Tuner Genius XL status property, or the whole status, when it changes.
+
+Use one node per property you care about, for example `fwd`, `swr` or `state`.
 
 ### Input
 
-Any message reads and emits the current status.
+Any message emits the last known value, even if unchanged, and refreshes the status from the device.
 
 ### Output
 
-: payload (object) : Tuner state as reported by the device, the key=value pairs of the `status` command, e.g. `fwd`, `peak`, `swr`, `operate`, `bypass`, `bandA`, `antA`.
+: payload (number | string | object) : The value of the selected property, or the whole status object when *(all)* is selected.
+: topic (string) : The property name, or `status` when *(all)* is selected.
+: previous (number | string) : The previously emitted value (single property only; undefined for the first message).
+
+### Details
+
+The device reports `state` (0 standby, 1 operate), `active` (selected channel), `tuning`, `bypass`, `ag`,
+`fwd`/`peak`/`max` (dBm), `swr`, `relayC1`/`relayL`/`relayC2` (0-255) and, per channel A and B,
+`ptt`, `band`, `mode` (0 RF sense, 1 FLEX, 2 CAT, 3 P2B, 4 BCD), `flex`, `freq`, `bypass`, `bypassRx` and `ant`.
+
+With *Only emit when the value changes* on, the first value after (re)connecting is always emitted.
+The *Deadband* suppresses numeric changes smaller than the given amount, relative to the last emitted value,
+which is useful for noisy values such as `fwd` and `swr`.
 </script>

@@ -19,4 +19,78 @@ describe("nodes", () => {
         expect(helper.getNode("st")).toBeDefined();
         expect(helper.getNode("c")).toBeDefined();
     });
+
+    describe("status node", () => {
+        const tick = () => new Promise((r) => setTimeout(r, 20));
+        const load = async (cfg) => {
+            await helper.load([server, status], [
+                { id: "s", type: "tuner-genius-server", host: "127.0.0.1", port: 1, autoConnect: false },
+                { id: "st", type: "tuner-genius-status", server: "s", wires: [["h"]], ...cfg },
+                { id: "h", type: "helper" },
+            ]);
+            const out = [];
+            helper.getNode("h").on("input", (m) => out.push(m));
+            return { out, srv: helper.getNode("s"), node: helper.getNode("st") };
+        };
+
+        test("single property only emits changes", async () => {
+            const { out, srv } = await load({ property: "swr" });
+            const emit = (s) => srv.updatesEventEmitter.emit("status", s);
+            emit({ swr: 1.5, fwd: 10 });
+            emit({ swr: 1.5, fwd: 11 });
+            emit({ swr: 2, fwd: 11 });
+            emit({ fwd: 12 });
+            await tick();
+            expect(out.map((m) => [m.topic, m.payload, m.previous])).toEqual([
+                ["swr", 1.5, undefined],
+                ["swr", 2, 1.5],
+            ]);
+        });
+
+        test("emits every update when onlyChange is off", async () => {
+            const { out, srv } = await load({ property: "swr", onlyChange: false });
+            srv.updatesEventEmitter.emit("status", { swr: 1 });
+            srv.updatesEventEmitter.emit("status", { swr: 1 });
+            await tick();
+            expect(out).toHaveLength(2);
+        });
+
+        test("deadband ignores small numeric changes", async () => {
+            const { out, srv } = await load({ property: "fwd", deadband: 1 });
+            for (const fwd of [10, 10.4, 10.9, 11, 9.5]) srv.updatesEventEmitter.emit("status", { fwd });
+            await tick();
+            expect(out.map((m) => m.payload)).toEqual([10, 11, 9.5]);
+        });
+
+        test("all mode emits the object when anything changes", async () => {
+            const { out, srv } = await load({ property: "*" });
+            srv.updatesEventEmitter.emit("status", { fwd: 1 });
+            srv.updatesEventEmitter.emit("status", { fwd: 1 });
+            srv.updatesEventEmitter.emit("status", { fwd: 2 });
+            await tick();
+            expect(out.map((m) => m.payload)).toEqual([{ fwd: 1 }, { fwd: 2 }]);
+            await tick();
+            expect(out[0].topic).toBe("status");
+        });
+
+        test("unset property behaves like all", async () => {
+            const { out, srv } = await load({});
+            srv.updatesEventEmitter.emit("status", { fwd: 1 });
+            await tick();
+            expect(out[0].payload).toEqual({ fwd: 1 });
+        });
+
+        test("input re-emits the cached value and reconnect resets the filter", async () => {
+            const { out, srv, node } = await load({ property: "state" });
+            srv.status = { state: 1 };
+            srv.updatesEventEmitter.emit("status", { state: 1 });
+            node.receive({ payload: "" });
+            await tick();
+            expect(out.map((m) => m.payload)).toEqual([1, 1]);
+            srv.updatesEventEmitter.emit("closed");
+            srv.updatesEventEmitter.emit("status", { state: 1 });
+            await tick();
+            expect(out).toHaveLength(3);
+        });
+    });
 });
