@@ -122,13 +122,13 @@ module.exports = (RED) => {
 
             // "info" tells the SO2R and 3WAY variants apart (3WAY=1 on the latter).
             const info = parseKeyValues(await v4.sendCommand("info", 3000));
-            this.threeWay = info["3WAY"] === 1;
+            this.threeWay = info["3way"] === 1;
             this.info = {
                 ...this.info,
                 ...info,
                 name: String(info.nickname || info.name || this.info.name || "").replace(/_/g, " "),
             };
-            this.status = { ...this.status, ...parseStatus(await v4.sendCommand("status", 3000)) };
+            this.status = { ...this.status, ...parseStatus(await v4.sendStatusCommand(3000)) };
 
             if (this._v4 !== v4 || !this.connected) return;
 
@@ -177,7 +177,8 @@ module.exports = (RED) => {
         async resendStatus() {
             if (!this._v4) return;
             try {
-                this.status = { ...this.status, ...parseStatus(await this.command("status")) };
+                if (!this._v4) return;
+                this.status = { ...this.status, ...parseStatus(await this._v4.sendStatusCommand(5000)) };
             } catch (err) {
                 this.warn("Failed to read status: " + err.message);
                 return;

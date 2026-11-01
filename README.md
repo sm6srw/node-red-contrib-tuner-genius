@@ -6,10 +6,10 @@ Framing: `C<seq>|<command>` request, `R<seq>|<hex>|<message>` reply, `S<n>|statu
 ## Nodes
 
 - **tuner-genius-server** (config): host, port (default 9010), auto connect, status poll interval (default 1000 ms, 0 = off).
-- **tuner-genius-status**: emits `msg.payload` (object of `status` key/values such as `fwd`, `peak`, `swr`, `operate`, `bypass`, `bandA`, `antA`) on every change; any input reads and emits the current status.
+- **tuner-genius-status**: emits `msg.payload` (object of `status` key/values such as `fwd`, `peak`, `swr`, `state`, `bypass`, `bandA`, `antA`) on every change; any input reads and emits the current status.
 - **tuner-genius-control**: `msg.topic` selects the action:
   - `operate` / `bypass`: payload true/1/"on" enables, anything else disables
-  - `activate`: payload 1-3 (antenna, 3WAY units) or 1-2 (channel, SO2R units); the variant is detected from `3WAY=1` in the `info` reply
+  - `activate`: payload 1-3 (antenna, 3WAY units) or 1-2 (channel, SO2R units); the variant is detected from `3way=1` in the `info` reply
   - `autotune`
 
 ## Commands used

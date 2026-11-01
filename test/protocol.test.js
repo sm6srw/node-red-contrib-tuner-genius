@@ -8,7 +8,7 @@ describe("GeniusV4Protocol", () => {
     });
 
     test("parseKeyValues handles keys starting with a digit", () => {
-        expect(parseKeyValues("info 3WAY=1 nickname=TG")).toEqual({ "3WAY": 1, nickname: "TG" });
+        expect(parseKeyValues("info 3way=1 nickname=TG")).toEqual({ "3way": 1, nickname: "TG" });
     });
 
     test("parseBanner", () => {
@@ -24,12 +24,24 @@ describe("GeniusV4Protocol", () => {
         p.onStatus((m) => status.push(m));
         p.onBanner((b) => banners.push(b));
         const reply = p.sendCommand("status", 500);
-        expect(written[0]).toBe("C1|status\r\n");
+        expect(written[0]).toBe("C1|status\n");
         p.handleData("V1.2.44\r\nS7|status fwd=1\r\nR1|0|status swr=1\r");
         p.handleData("\n");
         await expect(reply).resolves.toBe("status swr=1");
         expect(status).toEqual(["status fwd=1"]);
         expect(banners).toEqual(["V1.2.44"]);
+    });
+
+    test("status command is answered by an S line", async () => {
+        const written = [];
+        const p = new GeniusV4Protocol({ write: (d) => written.push(d) });
+        const status = [];
+        p.onStatus((m) => status.push(m));
+        const reply = p.sendStatusCommand(500);
+        expect(written[0]).toBe("C1|status\n");
+        p.handleData("S7|status fwd=23.63 swr=-60 state=1\r\n");
+        await expect(reply).resolves.toBe("status fwd=23.63 swr=-60 state=1");
+        expect(status).toEqual(["status fwd=23.63 swr=-60 state=1"]);
     });
 
     test("error reply rejects", async () => {

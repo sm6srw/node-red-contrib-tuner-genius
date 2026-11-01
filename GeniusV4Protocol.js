@@ -1,5 +1,5 @@
 // Client for the Genius V4 line based API (shared pattern with Antenna Genius).
-//   request:   C<seq>|<command>\r\n
+//   request:   C<seq>|<command>\n   (bare LF; a trailing CR is rejected as "Invalid command")
 //   reply:     R<seq>|<hex result>|<message>\r\n
 //   status:    S<n>|<message>\r\n   (TGXL pushes S7|status fwd=... swr=...)
 //   banner:    V<version>[ AUTH]\r\n  (sent once on connect)
@@ -43,6 +43,13 @@ class GeniusV4Protocol {
             if (this.statusHandler) {
                 this.statusHandler(msg);
             }
+            // The "status" command is answered with an S line instead of an R line.
+            for (const [seq, pending] of this.pending) {
+                if (pending.resolveOnStatus && msg.startsWith("status")) {
+                    this.pending.delete(seq);
+                    pending.resolve(msg);
+                }
+            }
             return;
         }
 
@@ -85,10 +92,15 @@ class GeniusV4Protocol {
         return this._send(cmd, true, timeoutMs);
     }
 
-    _send(cmd, multi, timeoutMs) {
+    // Resolves with the first "S<n>|status ..." line (or the R reply, if that comes first).
+    sendStatusCommand(timeoutMs) {
+        return this._send("status", false, timeoutMs, true);
+    }
+
+    _send(cmd, multi, timeoutMs, resolveOnStatus = false) {
         const seq = this.nextSeq();
         return new Promise((resolve, reject) => {
-            const entry = { resolve, reject, lines: multi ? [] : null, multi };
+            const entry = { resolve, reject, lines: multi ? [] : null, multi, resolveOnStatus };
             if (timeoutMs) {
                 const timer = setTimeout(() => {
                     this.pending.delete(seq);
@@ -100,7 +112,7 @@ class GeniusV4Protocol {
                 entry.reject = (e) => { clearTimeout(timer); reject(e); };
             }
             this.pending.set(seq, entry);
-            this.socket.write(`C${seq}|${cmd}\r\n`);
+            this.socket.write(`C${seq}|${cmd}\n`);
         });
     }
 
