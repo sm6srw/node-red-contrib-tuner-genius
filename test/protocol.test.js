@@ -1,6 +1,6 @@
-const { GeniusV4Protocol, parseKeyValues, parseStatus, parseBanner } = require("../GeniusV4Protocol");
+const { GeniusTGProtocol, parseKeyValues, parseStatus, parseBanner } = require("../GeniusTGProtocol");
 
-describe("GeniusV4Protocol", () => {
+describe("GeniusTGProtocol", () => {
     test("parseStatus", () => {
         expect(parseStatus("status fwd=10.5 swr=1.2 operate=1 name=abc")).toEqual({
             fwd: 10.5, swr: 1.2, operate: 1, name: "abc",
@@ -18,7 +18,7 @@ describe("GeniusV4Protocol", () => {
 
     test("banner, command/reply and status", async () => {
         const written = [];
-        const p = new GeniusV4Protocol({ write: (d) => written.push(d) });
+        const p = new GeniusTGProtocol({ write: (d) => written.push(d) });
         const status = [];
         const banners = [];
         p.onStatus((m) => status.push(m));
@@ -34,7 +34,7 @@ describe("GeniusV4Protocol", () => {
 
     test("status command is answered by an S line", async () => {
         const written = [];
-        const p = new GeniusV4Protocol({ write: (d) => written.push(d) });
+        const p = new GeniusTGProtocol({ write: (d) => written.push(d) });
         const status = [];
         p.onStatus((m) => status.push(m));
         const reply = p.sendStatusCommand(500);
@@ -45,14 +45,14 @@ describe("GeniusV4Protocol", () => {
     });
 
     test("error reply rejects", async () => {
-        const p = new GeniusV4Protocol({ write: () => {} });
+        const p = new GeniusTGProtocol({ write: () => {} });
         const reply = p.sendCommand("bad");
         p.handleData("R1|10|oops\r\n");
         await expect(reply).rejects.toThrow("Command error");
     });
 
     test("timeout", async () => {
-        const p = new GeniusV4Protocol({ write: () => {} });
+        const p = new GeniusTGProtocol({ write: () => {} });
         await expect(p.sendCommand("x", 10)).rejects.toMatchObject({ code: "ETIMEDOUT" });
     });
 });

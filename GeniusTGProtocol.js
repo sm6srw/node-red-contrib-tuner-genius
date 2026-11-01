@@ -1,9 +1,9 @@
-// Client for the Genius V4 line based API (shared pattern with Antenna Genius).
+// Client for the Tuner Genius XL line based API (same framing as other 4O3A Genius devices).
 //   request:   C<seq>|<command>\n   (bare LF; a trailing CR is rejected as "Invalid command")
 //   reply:     R<seq>|<hex result>|<message>\r\n
 //   status:    S<n>|<message>\r\n   (TGXL pushes S7|status fwd=... swr=...)
 //   banner:    V<version>[ AUTH]\r\n  (sent once on connect)
-class GeniusV4Protocol {
+class GeniusTGProtocol {
     constructor(socket) {
         this.socket = socket;
         this.seq = 0;
@@ -153,7 +153,7 @@ const parseBanner = (line) => {
     };
 };
 
-exports.GeniusV4Protocol = GeniusV4Protocol;
+exports.GeniusTGProtocol = GeniusTGProtocol;
 exports.parseKeyValues = parseKeyValues;
 exports.parseStatus = parseStatus;
 exports.parseBanner = parseBanner;

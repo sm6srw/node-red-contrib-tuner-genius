@@ -1,6 +1,6 @@
 const Net = require("net");
 const EventEmitter = require("events");
-const { GeniusV4Protocol, parseKeyValues, parseStatus, parseBanner } = require("./GeniusV4Protocol");
+const { GeniusTGProtocol, parseKeyValues, parseStatus, parseBanner } = require("./GeniusTGProtocol");
 
 class UpdatesEventEmitter extends EventEmitter {}
 
@@ -18,7 +18,7 @@ module.exports = (RED) => {
             this.status = {};
             this.info = {};
             this.timer = null;
-            this._v4 = null;
+            this._protocol = null;
             this._dataHandler = null;
 
             this.updatesEventEmitter = new UpdatesEventEmitter();
@@ -76,7 +76,7 @@ module.exports = (RED) => {
                 this.client.removeListener("data", this._dataHandler);
                 this._dataHandler = null;
             }
-            this._v4 = null;
+            this._protocol = null;
         }
 
         _stopPolling() {
@@ -89,7 +89,7 @@ module.exports = (RED) => {
             if (!this.pollInterval) return;
             let busy = false;
             this.poller = setInterval(async () => {
-                if (busy || !this._v4) return;
+                if (busy || !this._protocol) return;
                 busy = true;
                 try {
                     await this.resendStatus();
@@ -100,19 +100,19 @@ module.exports = (RED) => {
         }
 
         async _setup() {
-            const v4 = new GeniusV4Protocol(this.client);
-            this._v4 = v4;
-            this._dataHandler = (chunk) => v4.handleData(chunk);
+            const protocol = new GeniusTGProtocol(this.client);
+            this._protocol = protocol;
+            this._dataHandler = (chunk) => protocol.handleData(chunk);
 
             // The device sends "V<version>[ AUTH]" immediately after connecting.
-            v4.onBanner((line) => {
+            protocol.onBanner((line) => {
                 this.info = { ...this.info, ...parseBanner(line) };
                 if (this.info.authRequired) {
                     this.warn("Tuner Genius requires authentication, which is not supported yet.");
                 }
             });
             // Unsolicited status: "S7|status fwd=... swr=..." (no subscription needed).
-            v4.onStatus((msg) => {
+            protocol.onStatus((msg) => {
                 this.trace("rx " + msg);
                 if (msg.startsWith("status")) {
                     this.status = { ...this.status, ...parseStatus(msg) };
@@ -122,16 +122,16 @@ module.exports = (RED) => {
             this.client.on("data", this._dataHandler);
 
             // "info" tells the SO2R and 3WAY variants apart (3WAY=1 on the latter).
-            const info = parseKeyValues(await v4.sendCommand("info", 3000));
+            const info = parseKeyValues(await protocol.sendCommand("info", 3000));
             this.threeWay = info["3way"] === 1;
             this.info = {
                 ...this.info,
                 ...info,
                 name: String(info.nickname || info.name || this.info.name || "").replace(/_/g, " "),
             };
-            this.status = { ...this.status, ...parseStatus(await v4.sendStatusCommand(3000)) };
+            this.status = { ...this.status, ...parseStatus(await protocol.sendStatusCommand(3000)) };
 
-            if (this._v4 !== v4 || !this.connected) return;
+            if (this._protocol !== protocol || !this.connected) return;
 
             this._startPolling();
 
@@ -141,10 +141,10 @@ module.exports = (RED) => {
 
         // Send a command to the tuner. Resolves with the reply message.
         command(cmd) {
-            if (!this._v4) {
+            if (!this._protocol) {
                 return Promise.reject(new Error("not connected"));
             }
-            return this._v4.sendCommand(cmd, 5000);
+            return this._protocol.sendCommand(cmd, 5000);
         }
 
         setOperate(on) {
@@ -176,10 +176,10 @@ module.exports = (RED) => {
 
         // Ask the device for the current status and emit it.
         async resendStatus() {
-            if (!this._v4) return;
+            if (!this._protocol) return;
             try {
-                if (!this._v4) return;
-                this.status = { ...this.status, ...parseStatus(await this._v4.sendStatusCommand(5000)) };
+                if (!this._protocol) return;
+                this.status = { ...this.status, ...parseStatus(await this._protocol.sendStatusCommand(5000)) };
             } catch (err) {
                 this.warn("Failed to read status: " + err.message);
                 return;
