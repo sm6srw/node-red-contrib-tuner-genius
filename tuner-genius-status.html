@@ -112,11 +112,32 @@ Any message emits the last known value, even if unchanged, and refreshes the sta
 : topic (string) : The property name, or `status` when *(all)* is selected.
 : previous (number | string) : The previously emitted value (single property only; undefined for the first message).
 
-### Details
+### Properties
 
-The device reports `state` (0 standby, 1 operate), `active` (selected channel), `tuning`, `bypass`, `ag`,
-`fwd`/`peak`/`max` (dBm), `swr`, `relayC1`/`relayL`/`relayC2` (0-255) and, per channel A and B,
-`ptt`, `band`, `mode` (0 RF sense, 1 FLEX, 2 CAT, 3 P2B, 4 BCD), `flex`, `freq`, `bypass`, `bypassRx` and `ant`.
+Values and units as described in the TGXL API documentation.
+
+| Property | Meaning | Unit / values |
+|---|---|---|
+| `state` | Device state | 0 = standby, 1 = operate |
+| `active` | Selected channel | 1 or 2 |
+| `tuning` | Tuning in progress | 1 = yes, 0 = no |
+| `bypass` | Device bypassed | 1 = yes, 0 = in line |
+| `ag` | Antenna Genius connected | 1 = yes, 0 = no |
+| `fwd` | Forward power | dBm |
+| `peak` | Peak power | dBm |
+| `max` | Maximum power | dBm |
+| `swr` | Return loss | dB; -60 when there is no RF |
+| `relayC1`, `relayL`, `relayC2` | Tuning network relay positions | 0-255 |
+| `pttA`, `pttB` | PTT asserted on channel A / B | 1 = yes, 0 = no |
+| `modeA`, `modeB` | Active mode | 0 = RF sense, 1 = FLEX, 2 = CAT, 3 = P2B, 4 = BCD |
+| `flexA`, `flexB` | FlexRadio nickname | text |
+| `freqA`, `freqB` | Current frequency | kHz |
+| `bandA`, `bandB` | Band | band index |
+| `bypassA`, `bypassB` | Channel bypassed | 1 = yes, 0 = no |
+| `bypassRxA`, `bypassRxB` | Channel RX bypass enabled | 1 = yes, 0 = no |
+| `antA`, `antB` | Antenna in use | 3WAY units, or SO2R integrated with an Antenna Genius |
+
+### Details
 
 With *Only emit when the value changes* on, the first value after (re)connecting is always emitted.
 The *Start delay* holds back all output for that many milliseconds after the flow is deployed, then emits

@@ -61,8 +61,15 @@ Any message re-reads the info from the device and emits it.
 
 ### Details
 
-Available items: `name` (nickname with spaces), `nickname`, `serial`, `version`, `firmware` (from the connect banner),
-`authRequired` and `3way` (only reported by 3WAY units; nothing is emitted when the device does not report it).
+| Item | Meaning |
+|---|---|
+| `name` | Device name with spaces (the nickname with `_` replaced by a space) |
+| `nickname` | Device name as reported; `_` stands for a space |
+| `serial` | Serial number |
+| `version` | Firmware version, from the `info` reply |
+| `firmware` | Firmware version, from the banner the device sends on connect |
+| `authRequired` | `true` when the device asked for authentication (only outside the local network; not supported yet) |
+| `3way` | `1` on 3WAY units. Not reported by SO2R units, so nothing is emitted for it there |
 
 The info is emitted once after the connection is established, and again after every reconnect.
 The *Start delay* holds back output for that many milliseconds after the flow is deployed,

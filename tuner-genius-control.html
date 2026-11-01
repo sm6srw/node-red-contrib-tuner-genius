@@ -38,11 +38,21 @@
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-control">
-Controls the Tuner Genius.
+Controls the Tuner Genius. Which variant you have matters for `activate`: 3WAY units select an antenna,
+SO2R units select a channel (detected automatically from the device info).
 
 ### Input
 
 : topic (string) : `operate`, `bypass`, `activate` or `autotune`. Only used when the node's Action is set to `msg.topic`; a fixed action in the node always takes precedence.
 
-: payload (boolean|string) : For `operate` and `bypass`: `true`, `1` or `"on"` enables, anything else disables. For `activate`: antenna 1-3 on 3WAY units (`activate ant=`), channel 1-2 on SO2R units (`activate ch=`). Ignored for `autotune`.
+: payload (boolean|number|string) : Depends on the action:
+
+| Action | Payload | Effect |
+|---|---|---|
+| `operate` | `true`, `1`, `"1"` or `"on"` / anything else | Operate / standby |
+| `bypass` | `true`, `1`, `"1"` or `"on"` / anything else | Bypass the tuner / put it in line |
+| `activate` | 1-3 on 3WAY units, 1-2 on SO2R units | Select antenna 1-3 (3WAY), or channel 1 = A, 2 = B (SO2R) |
+| `autotune` | ignored | Start autotuning on the selected channel |
+
+A failed command, such as a payload out of range, is reported as an error on the node.
 </script>

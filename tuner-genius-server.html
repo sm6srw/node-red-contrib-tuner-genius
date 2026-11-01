@@ -35,13 +35,18 @@
 <script type="text/markdown" data-help-name="tuner-genius-server">
 Tuner Genius shared connection configuration (TGXL TCP API).
 
+The nodes share one TCP connection to the device. After connecting, the device sends its firmware version
+(with `AUTH` appended when it requires authentication, which is only the case outside the local network and is
+not supported yet). Commands are answered immediately, so the status is read by polling.
+
 ### Configuration
 
 : Host (string) : Tuner Genius host name or IP address.
 
-: Port (integer) : Tuner Genius API port number.
+: Port (integer) : Tuner Genius API port number. The device uses 9010.
 
-: Auto connect (boolean) : Connect and reconnect automatically.
+: Auto connect (boolean) : Connect and reconnect automatically (retries every 5 seconds).
 
-: Poll (ms) : How often to read `status` from the device. 0 disables polling.
+: Poll (ms) : How often to read `status` from the device, in milliseconds. 0 disables polling, in which case
+status nodes only get the value read at connect time, and a fresh one on each input message.
 </script>
