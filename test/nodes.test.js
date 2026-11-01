@@ -48,6 +48,71 @@ describe("nodes", () => {
         });
     });
 
+    describe("info node", () => {
+        const info = require("../tuner-genius-info.js");
+        const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
+        const load = async (cfg) => {
+            await helper.load([server, info], [
+                { id: "s", type: "tuner-genius-server", host: "127.0.0.1", port: 1, autoConnect: false },
+                { id: "i", type: "tuner-genius-info", server: "s", startDelay: 0, wires: [["h"]], ...cfg },
+                { id: "h", type: "helper" },
+            ]);
+            const out = [];
+            helper.getNode("h").on("input", (m) => out.push(m));
+            const srv = helper.getNode("s");
+            srv.refreshInfo = async () => {};
+            await tick();
+            return { out, srv, node: helper.getNode("i") };
+        };
+
+        test("emits the whole info object on connect", async () => {
+            const { out, srv } = await load({});
+            srv.info = { name: "TG XL", serial: "1-2", "3way": 1 };
+            srv.updatesEventEmitter.emit("connected");
+            await tick();
+            expect(out).toHaveLength(1);
+            expect(out[0].topic).toBe("info");
+            expect(out[0].payload).toEqual({ name: "TG XL", serial: "1-2", "3way": 1 });
+        });
+
+        test("emits a single property", async () => {
+            const { out, srv } = await load({ property: "serial" });
+            srv.info = { name: "TG XL", serial: "1-2" };
+            srv.updatesEventEmitter.emit("connected");
+            await tick();
+            expect(out.map((m) => [m.topic, m.payload])).toEqual([["serial", "1-2"]]);
+        });
+
+        test("emits nothing when the property is not reported", async () => {
+            const { out, srv } = await load({ property: "3way" });
+            srv.info = { name: "TG XL" };
+            srv.updatesEventEmitter.emit("connected");
+            await tick();
+            expect(out).toHaveLength(0);
+        });
+
+        test("emits an already known info after the start delay and on input", async () => {
+            await helper.load([server, info], [
+                { id: "s", type: "tuner-genius-server", host: "127.0.0.1", port: 1, autoConnect: false },
+                { id: "i", type: "tuner-genius-info", server: "s", property: "name", startDelay: 50, wires: [["h"]] },
+                { id: "h", type: "helper" },
+            ]);
+            const out = [];
+            helper.getNode("h").on("input", (m) => out.push(m.payload));
+            const srv = helper.getNode("s");
+            srv.refreshInfo = async () => {};
+            srv.info = { name: "TG XL" };
+            srv.updatesEventEmitter.emit("connected");
+            await tick();
+            expect(out).toHaveLength(0);
+            await tick(80);
+            expect(out).toEqual(["TG XL"]);
+            helper.getNode("i").receive({ payload: "" });
+            await tick();
+            expect(out).toEqual(["TG XL", "TG XL"]);
+        });
+    });
+
     describe("status node", () => {
         const tick = () => new Promise((r) => setTimeout(r, 20));
         const load = async (cfg) => {

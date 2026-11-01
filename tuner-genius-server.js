@@ -99,6 +99,16 @@ module.exports = (RED) => {
             }, this.pollInterval);
         }
 
+        _applyInfo(reply) {
+            const info = parseKeyValues(reply);
+            this.threeWay = info["3way"] === 1;
+            this.info = {
+                ...this.info,
+                ...info,
+                name: String(info.nickname || info.name || this.info.name || "").replace(/_/g, " "),
+            };
+        }
+
         async _setup() {
             const protocol = new GeniusTGProtocol(this.client);
             this._protocol = protocol;
@@ -121,14 +131,8 @@ module.exports = (RED) => {
             });
             this.client.on("data", this._dataHandler);
 
-            // "info" tells the SO2R and 3WAY variants apart (3WAY=1 on the latter).
-            const info = parseKeyValues(await protocol.sendCommand("info", 3000));
-            this.threeWay = info["3way"] === 1;
-            this.info = {
-                ...this.info,
-                ...info,
-                name: String(info.nickname || info.name || this.info.name || "").replace(/_/g, " "),
-            };
+            // "info" tells the SO2R and 3WAY variants apart (3way=1 on the latter).
+            this._applyInfo(await protocol.sendCommand("info", 3000));
             this.status = { ...this.status, ...parseStatus(await protocol.sendStatusCommand(3000)) };
 
             if (this._protocol !== protocol || !this.connected) return;
@@ -185,6 +189,16 @@ module.exports = (RED) => {
                 return;
             }
             this.updatesEventEmitter.emit("status", { ...this.status });
+        }
+
+        // Re-read the device info.
+        async refreshInfo() {
+            if (!this._protocol) return;
+            try {
+                this._applyInfo(await this._protocol.sendCommand("info", 5000));
+            } catch (err) {
+                this.warn("Failed to read info: " + err.message);
+            }
         }
     }
 

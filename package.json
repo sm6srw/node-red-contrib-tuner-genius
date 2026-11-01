@@ -33,6 +33,7 @@
     "nodes": {
       "tuner-genius-server": "tuner-genius-server.js",
       "tuner-genius-status": "tuner-genius-status.js",
+      "tuner-genius-info": "tuner-genius-info.js",
       "tuner-genius-control": "tuner-genius-control.js"
     }
   },

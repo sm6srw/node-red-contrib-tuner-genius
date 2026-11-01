@@ -1,0 +1,70 @@
+<script type="text/javascript">
+    RED.nodes.registerType("tuner-genius-info", {
+        category: "Tuner Genius",
+        color: "#a6bbcf",
+        defaults: {
+            name: { value: "" },
+            server: { type: "tuner-genius-server", required: true },
+            property: { value: "*" },
+            startDelay: { value: 1000, validate: function (v) { return v === "" || v === undefined || (!isNaN(v) && Number(v) >= 0); } },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "bridge.svg",
+        label: function () {
+            if (this.name) return this.name;
+            return this.property && this.property !== "*" ? "tuner " + this.property : "tuner info";
+        },
+    });
+</script>
+
+<script type="text/html" data-template-name="tuner-genius-info">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-filter"></i> Property</label>
+        <select id="node-input-property" style="width:70%">
+            <option value="*">(all, as an object)</option>
+            <option value="name">name</option>
+            <option value="nickname">nickname</option>
+            <option value="serial">serial</option>
+            <option value="version">version</option>
+            <option value="firmware">firmware</option>
+            <option value="3way">3way</option>
+            <option value="authRequired">authRequired</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-startDelay"><i class="fa fa-hourglass-start"></i> Start delay</label>
+        <input type="number" id="node-input-startDelay" min="0" step="100" style="width:100px" />
+        <span style="margin-left:5px">ms before the first output after deploy</span>
+    </div>
+</script>
+
+<script type="text/markdown" data-help-name="tuner-genius-info">
+Emits the Tuner Genius XL device information, or a single item of it.
+
+### Input
+
+Any message re-reads the info from the device and emits it.
+
+### Output
+
+: payload (string | number | boolean | object) : The selected item, or the whole info object when *(all)* is selected.
+: topic (string) : The property name, or `info` when *(all)* is selected.
+
+### Details
+
+Available items: `name` (nickname with spaces), `nickname`, `serial`, `version`, `firmware` (from the connect banner),
+`authRequired` and `3way` (only reported by 3WAY units; nothing is emitted when the device does not report it).
+
+The info is emitted once after the connection is established, and again after every reconnect.
+The *Start delay* holds back output for that many milliseconds after the flow is deployed,
+giving downstream nodes such as dashboard widgets time to initialize.
+</script>
