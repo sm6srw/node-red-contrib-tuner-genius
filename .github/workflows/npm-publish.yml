@@ -33,6 +33,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org/
           package-manager-cache: false  # never use caching in release builds
+      - run: npm install -g npm@latest  # trusted publishing (OIDC) requires npm >= 11.5.1
       - run: npm ci
       - run: npx auto-dist-tag --write
-      - run: npm publish
+      - run: npm publish --provenance --access public
