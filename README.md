@@ -3,6 +3,8 @@
 Node-RED nodes for monitoring and operating a 4O3A Tuner Genius XL (SO2R and 3WAY variants) over its TCP API (port 9010).
 Framing: `C<seq>|<command>` request, `R<seq>|<hex>|<message>` reply, `S<n>|status key=value ...` status.
 
+[![Node.js CI](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/node.js.yml/badge.svg)](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/node.js.yml) [![Node.js Package](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/npm-publish.yml/badge.svg)](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/npm-publish.yml) [![CodeQL](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/codeql-analysis.yml) [![njsscan sarif](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/njsscan-analysis.yml/badge.svg)](https://github.com/sm6srw/node-red-contrib-tuner-genius/actions/workflows/njsscan-analysis.yml)
+
 ## Nodes
 
 - **tuner-genius-server** (config): host, port (default 9010), auto connect, status poll interval (default 1000 ms, 0 = off).
