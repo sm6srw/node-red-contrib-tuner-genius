@@ -6,7 +6,10 @@
     "node-red",
     "tuner genius",
     "4o3a",
-    "ham radio"
+    "ham radio",
+    "flex radio",
+    "sm6srw",
+    "nu1t"
   ],
   "scripts": {
     "test": "jest --coverage",
