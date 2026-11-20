@@ -97,7 +97,7 @@ class GeniusTGProtocol {
     }
 
     _handleMessage(text) {
-        if (this.messageHandler) {
+        if (this.messageHandler && text.trim() !== "") {
             this.messageHandler(text);
         }
     }

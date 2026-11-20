@@ -38,7 +38,7 @@ describe("GeniusTGProtocol", () => {
         const status = [];
         p.onMessage((m) => messages.push(m));
         p.onStatus((m) => status.push(m));
-        p.handleData("M|Tuned SWR: 1.05:1\r\nS7|M|Tuned SWR: 1.10:1\r\nS7|status fwd=1\r\n");
+        p.handleData("M|Tuned SWR: 1.05:1\r\nS7|M|Tuned SWR: 1.10:1\r\nS7|status fwd=1\r\nM|\r\nS7|M|  \r\n");
         expect(messages).toEqual(["Tuned SWR: 1.05:1", "Tuned SWR: 1.10:1"]);
         expect(status).toEqual(["status fwd=1"]);
     });
