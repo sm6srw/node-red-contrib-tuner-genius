@@ -11,6 +11,8 @@ module.exports = (RED) => {
 
             // "*" (or unset, for nodes created before the property option) emits the whole status object.
             const property = config.property && config.property !== "*" ? config.property : null;
+            // "message" is not a status property: it relays the free text the device sends (e.g. the tune result).
+            const messageMode = property === "message";
             const onlyChange = config.onlyChange !== false && config.onlyChange !== "false";
             const deadband = Math.max(parseFloat(config.deadband) || 0, 0);
             const startDelay = Math.max(parseInt(config.startDelay, 10) || 0, 0);
@@ -46,6 +48,14 @@ module.exports = (RED) => {
 
             const emitter = this.server.updatesEventEmitter;
 
+            // Device messages are events, so every one is emitted regardless of the change filter.
+            const sendMessage = (text) => {
+                this.send({ topic: "message", payload: text });
+            };
+            const onMessage = (text) => {
+                if (ready) sendMessage(text);
+            };
+
             const onConnected = () => {
                 this.status({ fill: "green", shape: "dot", text: this.server.info.name || "connected" });
             };
@@ -54,7 +64,7 @@ module.exports = (RED) => {
                 this.status({ fill: "red", shape: "ring", text: "disconnected" });
             };
             const onStatus = (status) => {
-                if (ready) emit(status, false);
+                if (ready && !messageMode) emit(status, false);
             };
 
             // Hold back output after deploy so that downstream nodes (e.g. dashboard UI) can finish initializing,
@@ -63,7 +73,7 @@ module.exports = (RED) => {
                 startTimer = setTimeout(() => {
                     startTimer = null;
                     ready = true;
-                    if (Object.keys(this.server.status).length > 0) {
+                    if (!messageMode && Object.keys(this.server.status).length > 0) {
                         emit({ ...this.server.status }, false);
                     }
                 }, startDelay);
@@ -72,9 +82,15 @@ module.exports = (RED) => {
             emitter.on("connected", onConnected);
             emitter.on("closed", onClosed);
             emitter.on("status", onStatus);
+            emitter.on("message", onMessage);
 
             // Any input emits the last known value regardless of the change filter, then refreshes from the device.
             this.on("input", (msg, send, done) => {
+                if (messageMode) {
+                    if (this.server.lastMessage !== undefined) sendMessage(this.server.lastMessage);
+                    if (done) done();
+                    return;
+                }
                 if (Object.keys(this.server.status).length > 0) {
                     emit({ ...this.server.status }, true);
                 }
@@ -87,6 +103,7 @@ module.exports = (RED) => {
                 emitter.removeListener("connected", onConnected);
                 emitter.removeListener("closed", onClosed);
                 emitter.removeListener("status", onStatus);
+                emitter.removeListener("message", onMessage);
             });
 
             this.server.connect();

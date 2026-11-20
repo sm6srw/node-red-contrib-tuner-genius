@@ -145,6 +145,18 @@ describe("nodes", () => {
             return { out, srv: helper.getNode("s"), node: helper.getNode("st") };
         };
 
+        test("message property emits every device message", async () => {
+            const { out, srv } = await load({ property: "message", startDelay: 0 });
+            srv.updatesEventEmitter.emit("message", "Tuned SWR: 1.05:1");
+            srv.updatesEventEmitter.emit("message", "Tuned SWR: 1.05:1");
+            srv.updatesEventEmitter.emit("status", { swr: 1 });
+            await tick();
+            expect(out.map((m) => [m.topic, m.payload])).toEqual([
+                ["message", "Tuned SWR: 1.05:1"],
+                ["message", "Tuned SWR: 1.05:1"],
+            ]);
+        });
+
         test("single property only emits changes", async () => {
             const { out, srv } = await load({ property: "swr" });
             const emit = (s) => srv.updatesEventEmitter.emit("status", s);

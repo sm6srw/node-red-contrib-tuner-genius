@@ -2,6 +2,7 @@
 //   request:   C<seq>|<command>\n   (bare LF; a trailing CR is rejected as "Invalid command")
 //   reply:     R<seq>|<hex result>|<message>\r\n
 //   status:    S<n>|<message>\r\n   (TGXL pushes S7|status fwd=... swr=...)
+//   message:   M|<text>\r\n      (free text, also accepted as S<n>|M|<text>)
 //   banner:    V<version>[ AUTH]\r\n  (sent once on connect)
 class GeniusTGProtocol {
     constructor(socket) {
@@ -11,6 +12,7 @@ class GeniusTGProtocol {
         this.lineBuffer = "";
         this.statusHandler = null;
         this.bannerHandler = null;
+        this.messageHandler = null;
     }
 
     nextSeq() {
@@ -37,9 +39,19 @@ class GeniusTGProtocol {
             return;
         }
 
+        // Free text from the device, e.g. "M|Tuned SWR: 1.05:1" at the end of a tune.
+        if (line.startsWith("M|")) {
+            this._handleMessage(line.substring(2));
+            return;
+        }
+
         if (line.startsWith("S")) {
             const pipeIdx = line.indexOf("|");
             const msg = pipeIdx !== -1 ? line.substring(pipeIdx + 1) : "";
+            if (msg.startsWith("M|")) {
+                this._handleMessage(msg.substring(2));
+                return;
+            }
             if (this.statusHandler) {
                 this.statusHandler(msg);
             }
@@ -84,6 +96,12 @@ class GeniusTGProtocol {
         }
     }
 
+    _handleMessage(text) {
+        if (this.messageHandler) {
+            this.messageHandler(text);
+        }
+    }
+
     sendCommand(cmd, timeoutMs) {
         return this._send(cmd, false, timeoutMs);
     }
@@ -118,6 +136,10 @@ class GeniusTGProtocol {
 
     onStatus(handler) {
         this.statusHandler = handler;
+    }
+
+    onMessage(handler) {
+        this.messageHandler = handler;
     }
 
     onBanner(handler) {

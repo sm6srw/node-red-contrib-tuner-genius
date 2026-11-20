@@ -17,6 +17,7 @@ module.exports = (RED) => {
 
             this.status = {};
             this.info = {};
+            this.lastMessage = undefined;
             this.timer = null;
             this._protocol = null;
             this._dataHandler = null;
@@ -128,6 +129,12 @@ module.exports = (RED) => {
                     this.status = { ...this.status, ...parseStatus(msg) };
                     this.updatesEventEmitter.emit("status", { ...this.status });
                 }
+            });
+            // Free text such as "M|Tuned SWR: 1.05:1" when a tune completes.
+            protocol.onMessage((text) => {
+                this.trace("rx M|" + text);
+                this.lastMessage = text;
+                this.updatesEventEmitter.emit("message", text);
             });
             this.client.on("data", this._dataHandler);
 

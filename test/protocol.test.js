@@ -32,6 +32,17 @@ describe("GeniusTGProtocol", () => {
         expect(banners).toEqual(["V1.2.44"]);
     });
 
+    test("M| messages are routed to the message handler", () => {
+        const p = new GeniusTGProtocol({ write: () => {} });
+        const messages = [];
+        const status = [];
+        p.onMessage((m) => messages.push(m));
+        p.onStatus((m) => status.push(m));
+        p.handleData("M|Tuned SWR: 1.05:1\r\nS7|M|Tuned SWR: 1.10:1\r\nS7|status fwd=1\r\n");
+        expect(messages).toEqual(["Tuned SWR: 1.05:1", "Tuned SWR: 1.10:1"]);
+        expect(status).toEqual(["status fwd=1"]);
+    });
+
     test("status command is answered by an S line", async () => {
         const written = [];
         const p = new GeniusTGProtocol({ write: (d) => written.push(d) });

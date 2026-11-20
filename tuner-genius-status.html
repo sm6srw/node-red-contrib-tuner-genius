@@ -19,7 +19,9 @@
         },
         oneditprepare: function () {
             const sync = () => {
-                $("#node-input-deadband-row").toggle($("#node-input-property").val() !== "*");
+                const prop = $("#node-input-property").val();
+                $("#node-input-deadband-row").toggle(prop !== "*" && prop !== "message");
+                $("#node-input-onlyChange-row").toggle(prop !== "message");
             };
             $("#node-input-property").on("change", sync);
             sync();
@@ -40,6 +42,7 @@
         <label for="node-input-property"><i class="fa fa-filter"></i> Property</label>
         <select id="node-input-property" style="width:70%">
             <option value="*">(all, as an object)</option>
+            <option value="message">message (text from the device)</option>
             <optgroup label="Device">
                 <option value="state">state</option>
                 <option value="active">active</option>
@@ -80,7 +83,7 @@
             </optgroup>
         </select>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="node-input-onlyChange-row">
         <label for="node-input-onlyChange">&nbsp;</label>
         <input type="checkbox" id="node-input-onlyChange" style="display:inline-block; width:auto; vertical-align:top;" />
         <label for="node-input-onlyChange" style="width:70%">Only emit when the value changes</label>
@@ -98,18 +101,20 @@
 </script>
 
 <script type="text/markdown" data-help-name="tuner-genius-status">
-Emits one Tuner Genius XL status property, or the whole status, when it changes.
+Emits one Tuner Genius XL status property, the whole status, or the device messages.
 
 Use one node per property you care about, for example `fwd`, `swr` or `state`.
+Select `message` to receive the free text the tuner sends, such as `Tuned SWR: 1.05:1` when a tune completes.
 
 ### Input
 
 Any message emits the last known value, even if unchanged, and refreshes the status from the device.
+In `message` mode it emits the last received device message instead.
 
 ### Output
 
-: payload (number | string | object) : The value of the selected property, or the whole status object when *(all)* is selected.
-: topic (string) : The property name, or `status` when *(all)* is selected.
+: payload (number | string | object) : The value of the selected property, the whole status object when *(all)* is selected, or the message text (without the `M|` prefix) when `message` is selected.
+: topic (string) : The property name, `status` when *(all)* is selected, or `message`.
 : previous (number | string) : The previously emitted value (single property only; undefined for the first message).
 
 ### Properties
@@ -144,4 +149,5 @@ The *Start delay* holds back all output for that many milliseconds after the flo
 the latest known status. This gives downstream nodes such as dashboard widgets time to initialize.
 The *Deadband* suppresses numeric changes smaller than the given amount, relative to the last emitted value,
 which is useful for noisy values such as `fwd` and `swr`.
+Device messages are events, so each one is emitted; the change filter and deadband do not apply to them.
 </script>
